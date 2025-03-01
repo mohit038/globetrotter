@@ -8,13 +8,62 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("POSTGRES_PRISMA_URL") // uses connection pooling
-  directUrl = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
+  directUrl = env("POSTGRES_PRISMA_URL") // uses a direct connection
 }
 
-model users {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  image     String
-  createdAt DateTime @default(now())
+model user {
+  id            String         @id @default(uuid())
+  username      String         @unique
+  score         Int            @default(0)
+  correctGuesses Int           @default(0)
+  incorrectGuesses Int         @default(0)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  gameSessions  gameSession[]
+  sentChallenges challenge[]   @relation("Challenger")
+}
+
+model destination {
+  id            String         @id @default(uuid())
+  name          String         @unique
+  clues         clue[]
+  facts         fact[]
+  gameSessions  gameSession[]
+}
+
+model clue {
+  id            String         @id @default(uuid())
+  text          String
+  difficulty    String         @default("medium") // easy, medium, hard
+  destinationId String
+  destination   destination    @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+}
+
+model fact {
+  id            String         @id @default(uuid())
+  text          String
+  isTrivia      Boolean        @default(false)
+  destinationId String
+  destination   destination    @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+}
+
+model gameSession {
+  id            String         @id @default(uuid())
+  userId        String
+  user          user           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  destinationId String
+  destination   destination    @relation(fields: [destinationId], references: [id])
+  isCorrect     Boolean?       // null if not answered yet
+  createdAt     DateTime       @default(now())
+  challengeId   String?
+  challenge     challenge?     @relation(fields: [challengeId], references: [id])
+}
+
+model challenge {
+  id            String         @id @default(uuid())
+  challengerId  String
+  challenger    user           @relation("Challenger", fields: [challengerId], references: [id])
+  inviteCode    String         @unique
+  createdAt     DateTime       @default(now())
+  gameSessions  gameSession[]
 }
