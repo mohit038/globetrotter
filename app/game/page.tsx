@@ -72,7 +72,7 @@ export default function GamePage() {
     const storedUserId = localStorage.getItem("globetrotter_userId");
 
     if (!storedUsername || !storedUserId) {
-      router.push("/home");
+      router.push("/");
       return;
     }
 
@@ -102,7 +102,7 @@ export default function GamePage() {
 
     // Mark initial load as complete
     initialLoadComplete.current = true;
-  }, []); // Remove router from dependencies
+  }, [router]); // Add router back to dependencies
 
   const fetchUserStats = async (userId: string) => {
     try {
@@ -112,6 +112,12 @@ export default function GamePage() {
         setScore(data.score);
         setCorrectGuesses(data.correctGuesses);
         setIncorrectGuesses(data.incorrectGuesses);
+      } else {
+        // If user not found, clear localStorage and redirect to home
+        console.error("User not found in fetchUserStats");
+        localStorage.removeItem("globetrotter_username");
+        localStorage.removeItem("globetrotter_userId");
+        router.push("/");
       }
     } catch (error) {
       console.error("Error fetching user stats:", error);
@@ -141,8 +147,11 @@ export default function GamePage() {
       const userResponse = await fetch(`/api/users/${userIdToUse}`);
       if (!userResponse.ok) {
         console.error("User not found or invalid");
-        // Redirect to home page if user is invalid
-        router.push("/home");
+        // Clear localStorage and redirect to home page if user is invalid
+        localStorage.removeItem("globetrotter_username");
+        localStorage.removeItem("globetrotter_userId");
+        router.push("/");
+        setIsLoading(false);
         return;
       }
 
@@ -178,7 +187,7 @@ export default function GamePage() {
           // Clear local storage and redirect to home
           localStorage.removeItem("globetrotter_username");
           localStorage.removeItem("globetrotter_userId");
-          router.push("/home");
+          router.push("/");
         }
       }
     } catch (error) {
@@ -206,8 +215,11 @@ export default function GamePage() {
       const userResponse = await fetch(`/api/users/${userId}`);
       if (!userResponse.ok) {
         console.error("User not found or invalid");
-        // Redirect to home page if user is invalid
-        router.push("/home");
+        // Clear localStorage and redirect to home page if user is invalid
+        localStorage.removeItem("globetrotter_username");
+        localStorage.removeItem("globetrotter_userId");
+        router.push("/");
+        setIsLoading(false);
         return;
       }
 
@@ -447,7 +459,7 @@ export default function GamePage() {
                   localStorage.removeItem("globetrotter_username");
                   localStorage.removeItem("globetrotter_userId");
                   // Redirect to home page
-                  router.push("/home");
+                  router.push("/");
                 }}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md transition-colors"
               >
