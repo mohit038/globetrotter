@@ -1,8 +1,13 @@
+
+https://github.com/user-attachments/assets/6dece3f8-776c-44a2-a947-d92dda62d573
 # 🌍 Globetrotter
 
 Globetrotter is an interactive geography guessing game where players are challenged to identify destinations around the world based on clues. Players can challenge friends, track their scores, and learn interesting facts about global destinations.
 
 Visit: https://globetrotter-phi.vercel.app/game
+
+
+https://github.com/user-attachments/assets/090dbadc-d633-4f3e-b5b9-e35eba802a7a
 
 ## 🎮 Main Features
 
