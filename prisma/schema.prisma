@@ -12,23 +12,33 @@ datasource db {
 }
 
 model user {
-  id            String         @id @default(uuid())
-  username      String         @unique
-  score         Int            @default(0)
-  correctGuesses Int           @default(0)
-  incorrectGuesses Int         @default(0)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  gameSessions  gameSession[]
-  sentChallenges challenge[]   @relation("Challenger")
+  id                 String         @id @default(uuid())
+  username           String         @unique
+  score              Int            @default(0)
+  correctGuesses     Int            @default(0)
+  incorrectGuesses   Int            @default(0)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  gameSessions       gameSession[]
+  createdChallenges  challenge[]    @relation("ChallengeCreator")
+  updatedChallenges  challenge[]    @relation("ChallengeUpdater")
+  sentInvites        invite[]       @relation("InviteSender")
+  createdDestinations destination[]  @relation("DestinationCreator")
+  updatedDestinations destination[]  @relation("DestinationUpdater")
 }
 
 model destination {
   id            String         @id @default(uuid())
   name          String         @unique
+  createdById   String?
+  creator       user?          @relation("DestinationCreator", fields: [createdById], references: [id])
+  updatedById   String?
+  updater       user?          @relation("DestinationUpdater", fields: [updatedById], references: [id])
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   clues         clue[]
   facts         fact[]
-  gameSessions  gameSession[]
+  challenges    challenge[]
 }
 
 model clue {
@@ -51,19 +61,34 @@ model gameSession {
   id            String         @id @default(uuid())
   userId        String
   user          user           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  destinationId String
-  destination   destination    @relation(fields: [destinationId], references: [id])
   isCorrect     Boolean?       // null if not answered yet
+  challengeId   String
+  challenge     challenge      @relation(fields: [challengeId], references: [id])
   createdAt     DateTime       @default(now())
-  challengeId   String?
-  challenge     challenge?     @relation(fields: [challengeId], references: [id])
+  updatedAt     DateTime       @updatedAt
 }
 
 model challenge {
   id            String         @id @default(uuid())
-  challengerId  String
-  challenger    user           @relation("Challenger", fields: [challengerId], references: [id])
-  inviteCode    String         @unique
+  destinationId String
+  destination   destination    @relation(fields: [destinationId], references: [id])
+  isActive      Boolean        @default(true)
   createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  createdById   String?
+  updatedById   String?
+  creator       user?          @relation("ChallengeCreator", fields: [createdById], references: [id])
+  updater       user?          @relation("ChallengeUpdater", fields: [updatedById], references: [id])
   gameSessions  gameSession[]
+  invites       invite[]
+}
+
+model invite {
+  id            String         @id @default(uuid())
+  challengeId   String
+  challenge     challenge      @relation(fields: [challengeId], references: [id])
+  senderId      String
+  sender        user           @relation("InviteSender", fields: [senderId], references: [id])
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 }

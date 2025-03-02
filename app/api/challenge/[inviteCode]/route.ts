@@ -15,35 +15,56 @@ export async function GET(
       );
     }
 
-    // Find challenge by invite code
-    const challenge = await prisma.challenge.findUnique({
-      where: { inviteCode },
+    // Find invite by ID (which is the invite code)
+    const invite = await prisma.invite.findUnique({
+      where: { id: inviteCode },
       include: {
-        challenger: true,
+        challenge: {
+          include: {
+            destination: true,
+          },
+        },
+        sender: true,
       },
     });
 
-    if (!challenge) {
+    if (!invite) {
       return NextResponse.json(
-        { error: "Challenge not found" },
+        { error: "Challenge invite not found" },
         { status: 404 }
       );
     }
 
+    // Check if the challenge is still active
+    if (!invite.challenge.isActive) {
+      return NextResponse.json(
+        { error: "This challenge is no longer active" },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json({
-      id: challenge.id,
-      inviteCode: challenge.inviteCode,
-      createdAt: challenge.createdAt,
+      inviteCode: invite.id,
+      createdAt: invite.createdAt,
+      challenge: {
+        id: invite.challenge.id,
+        isActive: invite.challenge.isActive,
+        destination: {
+          name: invite.challenge.destination.name,
+        },
+      },
       challenger: {
-        id: challenge.challenger.id,
-        username: challenge.challenger.username,
-        score: challenge.challenger.score,
+        id: invite.sender.id,
+        username: invite.sender.username,
+        score: invite.sender.score,
+        correctGuesses: invite.sender.correctGuesses,
+        incorrectGuesses: invite.sender.incorrectGuesses,
       },
     });
   } catch (error) {
-    console.error("Error fetching challenge:", error);
+    console.error("Error fetching challenge invite:", error);
     return NextResponse.json(
-      { error: "Failed to fetch challenge" },
+      { error: "Failed to fetch challenge invite" },
       { status: 500 }
     );
   }

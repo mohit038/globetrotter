@@ -17,7 +17,7 @@ export async function POST(request: Request) {
       where: { username },
     });
 
-    return NextResponse.json({ exists: !!existingUser });
+    return NextResponse.json({ user: existingUser });
   } catch (error) {
     console.error("Error checking username:", error);
     return NextResponse.json(

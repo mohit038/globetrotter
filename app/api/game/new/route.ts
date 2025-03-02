@@ -1,47 +1,97 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    // Get all destinations
-    const allDestinations = await prisma.destination.findMany();
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get("userId");
 
-    if (allDestinations.length < 4) {
+    if (!userId) {
       return NextResponse.json(
-        { error: "Not enough destinations in the database" },
-        { status: 500 }
+        { error: "Unauthorized. User ID is required" },
+        { status: 401 }
       );
     }
 
-    // Select a random destination
-    const randomIndex = Math.floor(Math.random() * allDestinations.length);
-    const selectedDestination = allDestinations[randomIndex];
-
-    // Get clues for the selected destination
-    const clues = await prisma.clue.findMany({
-      where: { destinationId: selectedDestination.id },
+    const availableChallenges = await prisma.challenge.findMany({
+      where: {
+        isActive: true,
+        id: {
+          notIn: await prisma.gameSession
+            .findMany({
+              where: { userId, isCorrect: true },
+              select: { challengeId: true },
+            })
+            .then((sessions) => sessions.map((s) => s.challengeId)),
+        },
+      },
+      include: {
+        destination: true,
+      },
+      take: 10,
     });
 
-    // Get facts for the selected destination
-    const facts = await prisma.fact.findMany({
-      where: { destinationId: selectedDestination.id },
+    if (availableChallenges.length === 0) {
+      return NextResponse.json(
+        {
+          message: "No more challenges available",
+          allCompleted: true,
+        },
+        { status: 200 }
+      );
+    }
+
+    const randomIndex = Math.floor(Math.random() * availableChallenges.length);
+    const selectedChallenge = availableChallenges[randomIndex];
+
+    const selectedDestination = await prisma.destination.findUnique({
+      where: { id: selectedChallenge.destinationId },
+      include: {
+        clues: true,
+        facts: true,
+      },
+    });
+
+    if (!selectedDestination) {
+      return NextResponse.json(
+        { error: "Challenge not found" },
+        { status: 404 }
+      );
+    }
+
+    const allDestinations = await prisma.destination.findMany({
+      select: {
+        id: true,
+        name: true,
+      },
+      take: 10,
     });
 
     // Create options (1 correct + 3 random incorrect)
     const incorrectDestinations = allDestinations
-      .filter((dest: any) => dest.id !== selectedDestination.id)
-      .sort(() => 0.5 - Math.random()) // Shuffle
-      .slice(0, 3); // Take 3 random destinations
+      .filter((dest) => dest.id !== selectedDestination.id)
+      .sort(() => 0.5 - Math.random())
+      .slice(0, 3);
 
-    const options = [selectedDestination, ...incorrectDestinations].sort(
-      () => 0.5 - Math.random()
-    ); // Shuffle options
+    // Ensure all options are of the same type (objects with id and name)
+    const options = [
+      { id: selectedDestination.id, name: selectedDestination.name },
+      ...incorrectDestinations,
+    ].sort(() => 0.5 - Math.random()); // Shuffle options
+
+    const gameSession = await prisma.gameSession.create({
+      data: {
+        userId,
+        challengeId: selectedChallenge.id,
+      },
+    });
 
     return NextResponse.json({
-      destination: selectedDestination,
-      clues,
-      facts,
+      challengeId: selectedChallenge.id,
+      clues: selectedDestination.clues,
+      facts: selectedDestination.facts,
       options,
+      gameSessionId: gameSession.id,
     });
   } catch (error) {
     console.error("Error creating new game:", error);

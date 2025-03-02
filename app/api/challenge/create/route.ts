@@ -22,25 +22,58 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Generate a unique invite code
-    const inviteCode = randomBytes(6).toString("hex");
+    // Check if the user already has an invite
+    const existingInvite = await prisma.invite.findFirst({
+      where: {
+        senderId: userId,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
 
-    // Create challenge
-    const challenge = await prisma.challenge.create({
+    // If there's an existing invite, return it
+    if (existingInvite) {
+      return NextResponse.json({
+        inviteCode: existingInvite.id,
+        createdAt: existingInvite.createdAt,
+      });
+    }
+
+    // Get any active challenge - we don't care which one
+    const challenge = await prisma.challenge.findFirst({
+      where: {
+        isActive: true,
+      },
+    });
+
+    if (!challenge) {
+      return NextResponse.json(
+        { error: "No available challenges found" },
+        { status: 404 }
+      );
+    }
+
+    // Generate a unique invite code
+    const inviteCode = randomBytes(8).toString("hex");
+
+    // Create a public invite that anyone can use
+    const invite = await prisma.invite.create({
       data: {
-        challengerId: userId,
-        inviteCode,
+        id: inviteCode,
+        challengeId: challenge.id,
+        senderId: userId,
       },
     });
 
     return NextResponse.json({
-      id: challenge.id,
-      inviteCode: challenge.inviteCode,
+      inviteCode: invite.id,
+      createdAt: invite.createdAt,
     });
   } catch (error) {
-    console.error("Error creating challenge:", error);
+    console.error("Error processing request:", error);
     return NextResponse.json(
-      { error: "Failed to create challenge" },
+      { error: "Failed to process request" },
       { status: 500 }
     );
   }

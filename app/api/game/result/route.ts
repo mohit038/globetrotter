@@ -3,25 +3,31 @@ import prisma from "@/lib/prisma";
 
 export async function POST(request: Request) {
   try {
-    const { userId, destinationId, isCorrect } = await request.json();
+    const { userId, sessionId, destinationId } = await request.json();
 
-    if (!userId || !destinationId) {
+    if (!userId || !sessionId) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    // Create game session
-    await prisma.gameSession.create({
-      data: {
-        userId,
-        destinationId,
-        isCorrect,
+    const gameSession = await prisma.gameSession.findUnique({
+      where: { id: sessionId },
+      include: {
+        challenge: true,
       },
     });
 
-    // Update user stats
+    if (!gameSession) {
+      return NextResponse.json(
+        { error: "Game session not found" },
+        { status: 404 }
+      );
+    }
+
+    const isCorrect = gameSession.challenge.destinationId === destinationId;
+
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
@@ -43,7 +49,19 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({ success: true });
+    await prisma.gameSession.update({
+      where: { id: sessionId },
+      data: { isCorrect },
+    });
+
+    if (isCorrect) {
+      return NextResponse.json({ isCorrect });
+    } else {
+      return NextResponse.json({
+        isCorrect,
+        correctDestinationId: gameSession.challenge.destinationId,
+      });
+    }
   } catch (error) {
     console.error("Error saving game result:", error);
     return NextResponse.json(

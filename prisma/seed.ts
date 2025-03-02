@@ -3,11 +3,22 @@ import prisma from "../lib/prisma";
 async function main() {
   // Clear existing data
   await prisma.gameSession.deleteMany({});
+  await prisma.invite.deleteMany({});
   await prisma.challenge.deleteMany({});
   await prisma.clue.deleteMany({});
   await prisma.fact.deleteMany({});
   await prisma.destination.deleteMany({});
   await prisma.user.deleteMany({});
+
+  // Create a system user first
+  const systemUser = await prisma.user.create({
+    data: {
+      username: "system",
+      score: 0,
+      correctGuesses: 0,
+      incorrectGuesses: 0,
+    },
+  });
 
   // Create initial destinations
   const destinations = [
@@ -169,6 +180,7 @@ async function main() {
     const createdDestination = await prisma.destination.create({
       data: {
         name: destination.name,
+        createdById: systemUser.id,
       },
     });
 
@@ -191,6 +203,15 @@ async function main() {
         },
       });
     }
+
+    // Create a default challenge for this destination
+    await prisma.challenge.create({
+      data: {
+        createdById: systemUser.id,
+        destinationId: createdDestination.id,
+        isActive: true,
+      },
+    });
   }
 
   // Create a demo user
