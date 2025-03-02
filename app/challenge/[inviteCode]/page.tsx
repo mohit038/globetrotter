@@ -55,16 +55,23 @@ export default function ChallengePage({
 
     // Fetch challenge info
     const fetchChallengeInfo = async () => {
+      setIsLoading(true);
       try {
         const response = await fetch(`/api/challenge/${inviteCode}`);
+        const data = await response.json();
 
         if (!response.ok) {
-          throw new Error("Challenge not found");
+          throw new Error(data.error || "Challenge not found");
         }
 
-        const data = await response.json();
         setChallenger(data.challenger);
         setChallenge(data.challenge);
+
+        // Check if the challenge is active
+        if (data.challenge && !data.challenge.isActive) {
+          setError("This challenge is no longer active.");
+          return;
+        }
 
         // Check if the current user is the challenger
         if (
@@ -75,7 +82,11 @@ export default function ChallengePage({
           setIsOwnInvite(true);
         }
       } catch (err) {
-        setError("This challenge link is invalid or has expired.");
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError("This challenge link is invalid or has expired.");
+        }
       } finally {
         setIsLoading(false);
       }
@@ -127,6 +138,13 @@ export default function ChallengePage({
   const acceptChallenge = async (userId: string) => {
     if (!challenge) return;
 
+    // Check if the challenge is active before proceeding
+    if (!challenge.isActive) {
+      setError("This challenge is no longer active.");
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       // Store the challenge ID in localStorage so the game page can load it
       localStorage.setItem("globetrotter_currentChallenge", challenge.id);
@@ -142,6 +160,13 @@ export default function ChallengePage({
 
   const handlePlayNow = () => {
     if (!currentUser || !currentUser.id) return;
+
+    // Check if the challenge is active before proceeding
+    if (challenge && !challenge.isActive) {
+      setError("This challenge is no longer active.");
+      return;
+    }
+
     setIsSubmitting(true);
     acceptChallenge(currentUser.id);
   };
@@ -358,7 +383,9 @@ export default function ChallengePage({
               </p>
               <button
                 onClick={handlePlayNow}
-                disabled={isSubmitting}
+                disabled={
+                  isSubmitting || (challenge ? !challenge.isActive : false)
+                }
                 className="w-full bg-green-600 text-white py-3 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors disabled:opacity-50 mb-3"
               >
                 {isSubmitting ? (
@@ -366,6 +393,8 @@ export default function ChallengePage({
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
                     <span>Loading...</span>
                   </div>
+                ) : challenge && !challenge.isActive ? (
+                  "Challenge Inactive"
                 ) : (
                   "Play Challenge Now"
                 )}
@@ -407,7 +436,9 @@ export default function ChallengePage({
 
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={
+                  isSubmitting || (challenge ? !challenge.isActive : false)
+                }
                 className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-50"
               >
                 {isSubmitting ? (
@@ -415,6 +446,8 @@ export default function ChallengePage({
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
                     <span>Loading...</span>
                   </div>
+                ) : challenge && !challenge.isActive ? (
+                  "Challenge Inactive"
                 ) : (
                   "Accept Challenge"
                 )}
