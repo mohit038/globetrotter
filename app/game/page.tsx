@@ -693,7 +693,7 @@ export default function GamePage() {
                       >
                         <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
                       </svg>
-                      Native Share
+                      Share
                     </button>
 
                     <button
@@ -949,16 +949,10 @@ export default function GamePage() {
                   </p>
                   <div className="flex gap-3">
                     <button
-                      onClick={generateInviteLink}
-                      className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-md transition-colors"
-                    >
-                      Try Again
-                    </button>
-                    <button
                       onClick={() => setShowChallengeModal(false)}
-                      className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100 transition-colors"
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
                     >
-                      Cancel
+                      Close
                     </button>
                   </div>
                 </div>
