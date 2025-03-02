@@ -6,7 +6,7 @@ Globetrotter is an interactive geography guessing game where players are challen
 
 Visit: https://globetrotter-phi.vercel.app/game
 
-# demo
+# 🤗 Demo
 https://github.com/user-attachments/assets/090dbadc-d633-4f3e-b5b9-e35eba802a7a
 
 ## 🎮 Main Features
